@@ -20,12 +20,13 @@ library(quanteda)
 library(topicmodels)
 library(tidyverse)
 ```
+
 ```{r}
 auth_as("default")
 ```
 
 ```{r}
-rstats <- search_tweets("#rstats", n = 100, include_rts = FALSE)
+rstats <- search_tweets("#rstats", n = 2, include_rts = FALSE)
 colnames(rstats)
 rstats[1:5, c("created_at", "text", "id_str")]
 ```
@@ -33,11 +34,30 @@ rstats[1:5, c("created_at", "text", "id_str")]
 ```{r}
 # another function could try:
 # lookup_tweets
-collins_timeline <- get_timeline(user="SenatorCollins")
+# collins_timeline <- get_timeline(user="SenatorCollins")
 
-corpus_collins <- corpus(collins_timeline, 
-                                     docid_field = "id",
-                                     text_field = "full_text")
+# corpus_collins <- corpus(collins_timeline, 
+#                                     docid_field = "id",
+#                                     text_field = "full_text")
+
+# id from sen kevin cramer tweet march 19: 1505248314232651776
+# tweet url: https://twitter.com/SenKevinCramer/status/1505248314232651776
+# max id from kevin cramer tweet march 21: 1505904432088862732
+# url: https://twitter.com/SenKevinCramer/status/1505904432088862732
+# kept running into intermittent errors passing in max_id ids, try to pass in data frame
+# instead to see if can avoid errors
+# and use iterative process to get tweets further back instead of
+# scrolling forever
+tweets_from_list <- lists_statuses(
+  list_id = 63915645,
+  n = 100,
+  max_id = tailed_tweets
+)
+
+tailed_tweets <- tweets_from_list %>%
+  select(c(created_at, id, id_str, full_text)) %>%
+  tail()
+tailed_tweets
 ```
 
 
