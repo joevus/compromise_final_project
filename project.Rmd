@@ -44,10 +44,7 @@ rstats[1:5, c("created_at", "text", "id_str")]
 # tweet url: https://twitter.com/SenKevinCramer/status/1505248314232651776
 # max id from kevin cramer tweet march 21: 1505904432088862732
 # url: https://twitter.com/SenKevinCramer/status/1505904432088862732
-# kept running into intermittent errors passing in max_id ids, try to pass in data frame
-# instead to see if can avoid errors
-# and use iterative process to get tweets further back instead of
-# scrolling forever
+
 tweets_from_list <- lists_statuses(
   list_id = 63915645,
   n = 100,
@@ -59,6 +56,27 @@ tailed_tweets <- tweets_from_list %>%
   tail()
 tailed_tweets
 ```
+
+
+```{r}
+# go backward on a senator's timeline to retrive a Tweet in the right timeframe
+# the Tweet ids are used later for retrieving Tweets from the US Senator list
+
+tweets_from_timeline <- get_timeline(
+  user="PattyMurray",
+  n = 20,
+  max_id = tailed_tweets
+)
+
+tailed_tweets <- tweets_from_timeline %>%
+  select(c(created_at, id, id_str, full_text)) %>%
+  tail()
+
+tailed_tweets
+
+# View(tweets_from_timeline)
+```
+
 
 
 ```{r}
