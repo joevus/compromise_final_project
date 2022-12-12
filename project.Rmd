@@ -77,6 +77,97 @@ tailed_tweets
 # View(tweets_from_timeline)
 ```
 
+Get senator screen names
+```{r}
+members <- lists_members(list_id = 63915645 )
+senator_handles_list <- members$screen_name
+```
+
+Respect for marriage act
+```{r}
+tweets_from_timeline <- get_timeline(
+  user=senator_handles_list,
+  max_id = c("1598011580016304128"),
+  since_id = c("1592524893316579329")
+)
+# Take only some fields. Get rid of fields that are lists because they cause an error
+tweets_from_timeline_processed<-select(tweets_from_timeline, created_at, id, id_str, full_text, text)
+write.csv(tweets_from_timeline_processed, "respect_for_marriage.csv" ,row.names = FALSE)
+```
+
+
+
+
+```{r}
+# retrieve tweets for Respect for Marriage Act 2022
+
+# first get data frame for max_id
+# max_tib <- lookup_tweets(statuses = c("1598011580016304128"))
+# since_tib <- lookup_tweets(statuses = c("1592524893316579329"))
+
+start_date <- date("2022-11-15")
+end_date <- date("2022-11-29")
+
+statuses_first_batch <- lists_statuses(
+    n = 50,
+    list_id = 63915645
+)
+last_status = tail(statuses_first_batch, n = 1)
+earliest_batch_date <- last_status$created_at[1]
+i <- 0
+
+# empty tibble to store statuses
+senate_list_statuses_a <- lists_statuses(n=1, list_id = 63915645)
+senate_list_statuses_a <- senate_list_statuses_a[-1,]
+
+statuses1 <- lists_statuses(
+    n = 1,
+    list_id = 63915645,
+    max_id = c("1602402701169422336")
+  )
+
+last_status1 = tail(statuses1, n=1)
+earliest_batch_date1 <- last_status1$created_at[1]
+
+while(earliest_batch_date > start_date) {
+  statuses <- lists_statuses(
+    n = 50,
+    list_id = 63915645,
+    max_id = last_status
+  )
+  
+  last_status = tail(statuses, n = 1)
+  earliest_batch_date <- last_status$created_at[1]
+  
+  print(length(statuses$created_at))
+  print(earliest_batch_date)
+  
+  # append rows
+  if(earliest_batch_date < end_date) {
+    senate_list_statuses_a <- bind_rows(senate_list_statuses_a, statuses)
+  }
+  
+  
+  print(paste("iteration: ", i))
+  print(paste("earliest_batch_date: ", earliest_batch_date))
+  
+  i <- i + 1
+}
+# # respect_for_marriage_tweets <- lists_statuses(
+# tmp_statuses2 <- lists_statuses(
+#   n = 2,
+#   list_id = 63915645,
+#   # max_id = c("1592524893316579329")
+#   since_id = c("1592524893316579329")
+# )
+# tmp_statuses <- select(tmp_statuses, created_at, id, id_str, full_text, text)
+# 
+# rbind(tmp_statuses, tmp_statuses2)
+
+# write.csv(respect_for_marriage_tweets, "respect_for_marriage.csv" ,row.names = FALSE)
+# View(respect_for_marriage_tweets)
+```
+
 
 
 ```{r}
