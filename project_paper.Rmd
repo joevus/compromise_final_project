@@ -7,32 +7,6 @@ output:
   pdf_document:
     toc: yes
     df_print: kable
-references:
-- id: Wickham2014
-  title: Tidy Data
-  author:
-  - family: Wickham
-    given: Hadley
-  container-title: Journal of Statistical Software
-  volume: 59
-  issue: 10
-  page: 1-23
-  type: article-journal
-  issued:
-    year: 2014
-- id: Baumer2017
-  title: Modern Data Science with R
-  author:
-  - family: Baumer
-    given: Benjamin S.
-  - family: Kaplan
-    given: Daniel T.
-  - family: Horton
-    given: Nicholas J.
-  type: book
-  publisher: Chapman \& Hall/CRC Press.
-  issued:
-    year: 2017
 ---
 
 ```{r, include = FALSE}
@@ -80,7 +54,7 @@ tweets_from_timeline <- get_timeline(
 
 The `user` field is populated with `senator_handles_list` which is a list of handles used by US Senators. I created that R vector with the following code:
 
-```{r}
+```{r, eval=FALSE}
 members <- lists_members(list_id = 63915645 )
 senator_handles_list <- members$screen_name
 ```
