@@ -297,7 +297,407 @@ ggplot(topicProportions_df) +
 topicProportions_df
 ```
 
-## Topic Modeling
+## Topic Modeling for Inflation Reduction Act 2022
+
+```{r}
+corpus_inflation_reduction <- corpus(tweets_from_timeline2,
+                                      docid_field = "id",
+                                      text_field= "full_text")
+
+corpus_inflation_reduction_proc <- tokens(corpus_inflation_reduction,
+                                        remove_punct = TRUE, # remove punctuation
+                                        remove_numbers = TRUE, # remove numbers
+                                        remove_symbols = TRUE) %>% # remove symbols (for social media data, could remove everything except letters)
+                                          tokens_tolower() # remove capitalization
+
+
+
+```
+
+```{r}
+corpus_inflation_reduction_proc  <-  tokens_replace(corpus_inflation_reduction_proc, # "Substitute token types based on vectorized one-to-one matching"
+                                    lemmaData$V1, 
+                                    lemmaData$V2,
+                                    valuetype = "fixed") 
+```
+
+```{r}
+corpus_inflation_reduction_proc <- corpus_inflation_reduction_proc %>%
+                             tokens_remove(stopwords("english")) %>%
+                             tokens_ngrams(1) 
+```
+
+
+```{r}
+#  Create dtm
+DTM <- dfm(corpus_inflation_reduction_proc)
+
+# Minimum
+minimumFrequency <- 10
+DTM <- dfm_trim(DTM, 
+                min_docfreq = minimumFrequency,
+                max_docfreq = 99999999)
+
+# keep only letters... brute force
+DTM  <- dfm_select(DTM, 
+                   pattern = "[a-z]", 
+                   valuetype = "regex", 
+                   selection = 'keep')
+colnames(DTM) <- stringi::stri_replace_all_regex(colnames(DTM), 
+                                                 "[^_a-z]","")
+
+DTM <- dfm_compress(DTM, "features")
+
+# We have several rows which do not have any content left. Drop them.
+
+sel_idx <- rowSums(DTM) > 0
+DTM <- DTM[sel_idx, ]
+# textdata <- textdata[sel_idx, ]
+```
+
+```{r}
+K <- 12
+# Set seed to make results reproducible
+set.seed(9161)
+inflation_topicModel <- LDA(DTM, 
+                  K, 
+                  method="Gibbs", 
+                  control=list(iter = 500, 
+                               verbose = 25))
+```
+
+```{r}
+tmResult <- posterior(inflation_topicModel)
+
+
+# Topics are distributions over the entire vocabulary
+
+beta <- tmResult$terms
+glimpse(beta)
+
+
+# Each doc has a distribution over k topics
+
+theta <- tmResult$topics
+glimpse(theta)               
+
+terms(inflation_topicModel, 10)
+
+# Top terms per topic. Use top 5 to interpret topics
+top5termsPerTopic <- terms(inflation_topicModel, 
+                           5)
+# For the next steps, we want to give the topics more descriptive names than just numbers. Therefore, we simply concatenate the five most likely terms of each topic to a string that represents a pseudo-name for each topic.
+topicNames <- apply(top5termsPerTopic, 
+                    2, 
+                    paste, 
+                    collapse=" ")
+```
+
+
+
+```{r}
+inflation_topics <- tidy(inflation_topicModel, matrix = "beta")
+
+terms_per_topic <- 5
+inflation_top_terms <- inflation_topics %>%
+  group_by(topic) %>%
+  top_n(terms_per_topic) %>%
+  ungroup() %>%
+  arrange(topic, -beta)
+
+inflation_top_terms$topic <- factor(inflation_top_terms$topic)
+
+inflation_top_terms %>%
+  mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ topic, scales = "free") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  coord_flip()
+```
+
+
+
+
+## Topic Modeling for Bipartisan Safer Communities Act of 2022
+
+```{r}
+corpus_safer_communities <- corpus(safer_communities_tweets,
+                                      docid_field = "id",
+                                      text_field= "full_text")
+
+corpus_safe_communities_proc <- tokens(corpus_safer_communities,
+                                        remove_punct = TRUE, # remove punctuation
+                                        remove_numbers = TRUE, # remove numbers
+                                        remove_symbols = TRUE) %>% # remove symbols (for social media data, could remove everything except letters)
+                                          tokens_tolower() # remove capitalization
+
+
+
+```
+
+```{r}
+corpus_safe_communities_proc <-  tokens_replace(corpus_safe_communities_proc, # "Substitute token types based on vectorized one-to-one matching"
+                                    lemmaData$V1, 
+                                    lemmaData$V2,
+                                    valuetype = "fixed") 
+```
+
+```{r}
+corpus_safe_communities_proc <- corpus_safe_communities_proc %>%
+                             tokens_remove(stopwords("english")) %>%
+                             tokens_ngrams(1) 
+```
+
+```{r}
+#  Create dtm
+DTM <- dfm(corpus_safe_communities_proc)
+
+# Minimum
+minimumFrequency <- 10
+DTM <- dfm_trim(DTM, 
+                min_docfreq = minimumFrequency,
+                max_docfreq = 99999999)
+
+# keep only letters... brute force
+DTM  <- dfm_select(DTM, 
+                   pattern = "[a-z]", 
+                   valuetype = "regex", 
+                   selection = 'keep')
+colnames(DTM) <- stringi::stri_replace_all_regex(colnames(DTM), 
+                                                 "[^_a-z]","")
+
+DTM <- dfm_compress(DTM, "features")
+
+# We have several rows which do not have any content left. Drop them.
+
+sel_idx <- rowSums(DTM) > 0
+DTM <- DTM[sel_idx, ]
+# textdata <- textdata[sel_idx, ]
+```
+
+```{r}
+K <- 12
+# Set seed to make results reproducible
+set.seed(9161)
+safer_communities_topicModel <- LDA(DTM, 
+                  K, 
+                  method="Gibbs", 
+                  control=list(iter = 500, 
+                               verbose = 25))
+```
+
+```{r}
+# source: http://jjacobs.me/tad/04_Topic_Modeling_ggplot2.html
+safer_communities_topics <- tidy(safer_communities_topicModel, matrix = "beta")
+
+terms_per_topic <- 5
+safer_communities_top_terms <- safer_communities_topics %>%
+  group_by(topic) %>%
+  top_n(terms_per_topic) %>%
+  ungroup() %>%
+  arrange(topic, -beta)
+
+safer_communities_top_terms$topic <- factor(safer_communities_top_terms$topic)
+
+safer_communities_top_terms %>%
+  mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ topic, scales = "free") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  coord_flip()
+```
+
+
+
+## Topic Modeling for American Rescue Plan Act of 2021
+
+
+
+```{r}
+corpus_rescue <- corpus(american_rescue_2021,
+                                      docid_field = "id",
+                                      text_field= "full_text")
+
+corpus_rescue_proc <- tokens(corpus_rescue,
+                                        remove_punct = TRUE, # remove punctuation
+                                        remove_numbers = TRUE, # remove numbers
+                                        remove_symbols = TRUE) %>% # remove symbols (for social media data, could remove everything except letters)
+                                          tokens_tolower() # remove capitalization
+```
+
+```{r}
+corpus_rescue_proc <-  tokens_replace(corpus_rescue_proc, # "Substitute token types based on vectorized one-to-one matching"
+                                    lemmaData$V1, 
+                                    lemmaData$V2,
+                                    valuetype = "fixed") 
+```
+
+```{r}
+corpus_rescue_proc <- corpus_rescue_proc %>%
+                             tokens_remove(stopwords("english")) %>%
+                             tokens_ngrams(1) 
+```
+
+```{r}
+#  Create dtm
+DTM <- dfm(corpus_rescue_proc)
+
+# Minimum
+minimumFrequency <- 10
+DTM <- dfm_trim(DTM, 
+                min_docfreq = minimumFrequency,
+                max_docfreq = 99999999)
+
+# keep only letters... brute force
+DTM  <- dfm_select(DTM, 
+                   pattern = "[a-z]", 
+                   valuetype = "regex", 
+                   selection = 'keep')
+colnames(DTM) <- stringi::stri_replace_all_regex(colnames(DTM), 
+                                                 "[^_a-z]","")
+
+DTM <- dfm_compress(DTM, "features")
+
+# We have several rows which do not have any content left. Drop them.
+
+sel_idx <- rowSums(DTM) > 0
+DTM <- DTM[sel_idx, ]
+# textdata <- textdata[sel_idx, ]
+```
+
+```{r}
+K <- 12
+# Set seed to make results reproducible
+set.seed(9161)
+rescue_topicModel <- LDA(DTM, 
+                  K, 
+                  method="Gibbs", 
+                  control=list(iter = 500, 
+                               verbose = 25))
+```
+
+```{r}
+# source: http://jjacobs.me/tad/04_Topic_Modeling_ggplot2.html
+rescue_topics <- tidy(rescue_topicModel, matrix = "beta")
+
+terms_per_topic <- 5
+rescue_top_terms <- rescue_topics %>%
+  group_by(topic) %>%
+  top_n(terms_per_topic) %>%
+  ungroup() %>%
+  arrange(topic, -beta)
+
+rescue_top_terms$topic <- factor(rescue_top_terms$topic)
+
+rescue_top_terms %>%
+  mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ topic, scales = "free") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  coord_flip()
+```
+
+
+
+
+
+
+## Topic Modeling for Infrastructure Investment and Jobs Act of 2021
+
+infrastructure_investment
+
+```{r}
+corpus_infrastructure <- corpus(infrastructure_investment,
+                                      docid_field = "id",
+                                      text_field= "full_text")
+
+corpus_infrastructure_proc <- tokens(corpus_infrastructure,
+                                        remove_punct = TRUE, # remove punctuation
+                                        remove_numbers = TRUE, # remove numbers
+                                        remove_symbols = TRUE) %>% # remove symbols (for social media data, could remove everything except letters)
+                                          tokens_tolower() # remove capitalization
+
+
+
+```
+
+```{r}
+corpus_infrastructure_proc <-  tokens_replace(corpus_infrastructure_proc, # "Substitute token types based on vectorized one-to-one matching"
+                                    lemmaData$V1, 
+                                    lemmaData$V2,
+                                    valuetype = "fixed") 
+```
+
+
+```{r}
+corpus_infrastructure_proc <- corpus_infrastructure_proc %>%
+                             tokens_remove(stopwords("english")) %>%
+                             tokens_ngrams(1) 
+```
+
+```{r}
+#  Create dtm
+DTM <- dfm(corpus_infrastructure_proc)
+
+# Minimum
+minimumFrequency <- 10
+DTM <- dfm_trim(DTM, 
+                min_docfreq = minimumFrequency,
+                max_docfreq = 99999999)
+
+# keep only letters... brute force
+DTM  <- dfm_select(DTM, 
+                   pattern = "[a-z]", 
+                   valuetype = "regex", 
+                   selection = 'keep')
+colnames(DTM) <- stringi::stri_replace_all_regex(colnames(DTM), 
+                                                 "[^_a-z]","")
+
+DTM <- dfm_compress(DTM, "features")
+
+# We have several rows which do not have any content left. Drop them.
+
+sel_idx <- rowSums(DTM) > 0
+DTM <- DTM[sel_idx, ]
+# textdata <- textdata[sel_idx, ]
+```
+
+```{r}
+K <- 12
+# Set seed to make results reproducible
+set.seed(9161)
+infrastructure_topicModel <- LDA(DTM, 
+                  K, 
+                  method="Gibbs", 
+                  control=list(iter = 500, 
+                               verbose = 25))
+```
+
+```{r}
+# source: http://jjacobs.me/tad/04_Topic_Modeling_ggplot2.html
+infrastructure_topics <- tidy(infrastructure_topicModel, matrix = "beta")
+
+terms_per_topic <- 5
+infrastructure_top_terms <- infrastructure_topics %>%
+  group_by(topic) %>%
+  top_n(terms_per_topic) %>%
+  ungroup() %>%
+  arrange(topic, -beta)
+
+infrastructure_top_terms$topic <- factor(infrastructure_top_terms$topic)
+
+infrastructure_top_terms %>%
+  mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ topic, scales = "free") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  coord_flip()
+```
+
 
 
 
